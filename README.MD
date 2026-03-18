@@ -13,7 +13,7 @@ Project documentation: [Overview (Coda)](https://coda.io/d/_dC5pWoFBqtU/Overview
 - [Project Overview](#project-overview)
 - [Technical Sheet](#technical-sheet)
 - [Development Team](#development-team)
-- [Tools and Technologies](#tools-and-technologies)
+- [Development Tools](#development-tools)
 - [Project Structure](#project-structure)
 - [Scene Architecture](#scene-architecture)
 - [Installation and Setup](#installation-and-setup)
@@ -44,19 +44,20 @@ Users point their mobile device at physical markers to trigger interactive 3D co
 
 ## Development Team
 
-| Name | Role                            |
-|---|---------------------------------|
-| Antonia Benz | 3D Artist                       |
+| Name | Role |
+|---|---|
+| Antonia Benz | 3D Artist |
 | Marcelo Herrera | Programmer, 3D Unity Generalist |
 
 ---
 
-## Development tools
+## Development Tools
 
 | Tool | Version |
 |---|---|
 | [Unity](https://unity.com/) | 6000.3.8f1 (Unity 6) |
 | [Vuforia Engine](https://developer.vuforia.com/) | 1.1.4 |
+| [DOTween](http://dotween.demigiant.com/) | latest |
 | [Blender](https://www.blender.org/) | 4.3.2 |
 
 ---
@@ -68,7 +69,6 @@ The following reflects the actual directory layout of the Unity project:
 ```
 ExpoCAVE/
 ├── Assets/
-│   ├── Animations/          # AnimationClips and AnimatorControllers
 │   ├── Editor/
 │   │   └── Models/          # 3D models used within the Editor context
 │   ├── Plugins/             # Third-party plugins (firstpass)
@@ -83,7 +83,7 @@ ExpoCAVE/
 │   ├── Sprites/             # 2D sprites and UI textures
 │   └── StreamingAssets/     # Vuforia database files (.xml / .dat)
 ├── Packages/
-│   └── manifest.json        # Package dependencies including Vuforia
+│   └── manifest.json        # Package dependencies including Vuforia and DOTween
 └── ProjectSettings/
 ```
 
@@ -98,7 +98,6 @@ ARScene
 ├── AR Camera  (Vuforia ARCamera prefab)
 ├── ImageTarget
 │   └── 3D Model
-│       ├── Animator
 │       ├── Collider  (MeshCollider or BoxCollider)
 │       └── ARInteractable.cs
 ├── RaycastManager  (empty GameObject)
@@ -119,10 +118,12 @@ ARInteractionManager
        v
 Physics.Raycast -----> hit? -----> ARInteractable.OnRaycastHit()
                                            |
-                              ┌────────────┴────────────┐
-                              v                         v
-                    Animator.SetTrigger()          UnityEvents
-                     (plays animation)       (audio, UI, particles, etc.)
+                                           v
+                                  Advance step index
+                                           |
+                                           v
+                                DOTween Sequence
+                             (plays all tweens in step)
 ```
 
 ---
@@ -133,6 +134,7 @@ Physics.Raycast -----> hit? -----> ARInteractable.OnRaycastHit()
 
 - Unity **6000.3.8f1**
 - Vuforia Engine **1.1.4**, installed via Unity Package Manager
+- DOTween, installed via Unity Package Manager or the Asset Store
 
 ### Steps
 
@@ -146,30 +148,36 @@ Physics.Raycast -----> hit? -----> ARInteractable.OnRaycastHit()
 
    Open Unity Hub, select *Add project from disk*, and point it to the cloned folder. Make sure to open it with version **6000.3.8f1**.
 
-3. **Configure Vuforia**
+3. **Setup DOTween**
 
-    - Navigate to `Edit > Project Settings > Vuforia Configuration`
-    - Enter your **Vuforia License Key**, available at [developer.vuforia.com](https://developer.vuforia.com/)
-    - Upload and configure your **Image Targets** in the Vuforia Target Manager, then import the generated database into `Assets/StreamingAssets/`
+   After the project opens, go to **Tools > DOTween Utility Panel** and click **Setup DOTween**. This generates the required settings asset and registers the `DOTWEEN` scripting define symbol. The project will not compile without this step.
 
-4. **Build Settings**
+4. **Configure Vuforia**
 
-    - Go to `File > Build Settings`
-    - Select **Android** or **iOS** as the target platform
-    - Enable **ARCore** (Android) or **ARKit** (iOS) under Player Settings
-    - Grant **Camera** permissions in Player Settings
+   - Navigate to `Edit > Project Settings > Vuforia Configuration`
+   - Enter your **Vuforia License Key**, available at [developer.vuforia.com](https://developer.vuforia.com/)
+   - Upload and configure your **Image Targets** in the Vuforia Target Manager, then import the generated database into `Assets/StreamingAssets/`
+
+5. **Build Settings**
+
+   - Go to `File > Build Settings`
+   - Select **Android** or **iOS** as the target platform
+   - Enable **ARCore** (Android) or **ARKit** (iOS) under Player Settings
+   - Grant **Camera** permissions in Player Settings
 
 ---
 
 ## AR Interaction System
 
-Interaction is handled through touch-based raycasting from the AR camera onto the 3D models in the scene. When a user taps a model, the corresponding `ARInteractable` component receives the hit and fires its configured responses — animations, sounds, UI updates, or any other Unity Event.
+Interaction is handled through touch-based raycasting from the AR camera onto the 3D models in the scene. Animations are driven entirely by **DOTween** — there is no Animator Controller or Unity Animation system involved.
+
+Each model holds a list of **Animation Steps**. Every tap on the model advances to the next step and plays its configured tweens. When the last step is reached, the cycle restarts from the beginning (configurable).
 
 ### Scripts
 
 #### `ARInteractionManager.cs`
 
-Handles touch and mouse input, constructs a ray from the camera, and dispatches the hit to the appropriate interactable object.
+Handles touch and mouse input using Unity's Input System package, constructs a ray from the AR camera, and dispatches the hit to the appropriate interactable object.
 
 ```csharp
 private void PerformRaycast(Vector2 screenPosition)
@@ -187,22 +195,24 @@ private void PerformRaycast(Vector2 screenPosition)
 
 #### `ARInteractable.cs`
 
-Attached to each 3D model. Receives the raycast hit, triggers the Animator, and invokes the Unity Events configured in the Inspector.
+Attached to each 3D model. Maintains a step index that advances on every valid tap and plays the corresponding DOTween sequence. A new tap is ignored if an animation is already running or the cooldown has not elapsed.
 
 ```csharp
-public UnityEvent onTap;
-public UnityEvent<RaycastHit> onTapWithHitInfo;
-
 public void OnRaycastHit(RaycastHit hit)
 {
     if (Time.time - lastHitTime < cooldown) return;
+    if (activeSequence != null && activeSequence.IsPlaying()) return;
     lastHitTime = Time.time;
 
-    animator?.SetTrigger(animationTriggerName);
-    onTap?.Invoke();
-    onTapWithHitInfo?.Invoke(hit);
+    PlayStep(currentStep);
+
+    currentStep++;
+    if (currentStep >= steps.Count)
+        currentStep = loopCycle ? 0 : steps.Count - 1;
 }
 ```
+
+Each step holds any number of `TweenAnimation` entries. Within a step, animations can be chained (`Append`) or played simultaneously (`Join`).
 
 #### `VuforiaTargetHandler.cs`
 
@@ -220,22 +230,55 @@ private void OnStatusChanged(ObserverBehaviour behaviour, TargetStatus status)
 
 ### Inspector Reference
 
-| Component | Field | Recommended Value |
-|---|---|---|
-| `ARInteractionManager` | AR Camera | Vuforia `ARCamera` object |
-| `ARInteractionManager` | Interactable Layer | Custom layer named `Interactable` |
-| `ARInteractionManager` | Raycast Distance | `100` |
-| `ARInteractable` | Animation Trigger Name | Must match the Trigger parameter in the Animator |
-| `ARInteractable` | Cooldown | `1` second |
+#### ARInteractionManager
 
-### Animator Setup
+| Field | Recommended Value |
+|---|---|
+| AR Camera | Vuforia `ARCamera` object |
+| Interactable Layer | Custom layer named `Interactable` |
+| Raycast Distance | `100` |
 
-Inside the **Animator Controller** assigned to the model:
+#### ARInteractable
 
-1. Add a **Trigger** parameter — for example, `Interact`
-2. Create a transition from **Any State** to the target animation clip
-3. Set the trigger as the transition condition
-4. Uncheck *Can Transition To Self* if the animation should not restart while already playing
+| Field | Description |
+|---|---|
+| Cooldown | Minimum seconds between taps. Default: `0.5` |
+| Loop Cycle | If enabled, the step index resets to 0 after the last step |
+| Steps | List of animation steps. Each step plays on one tap |
+
+#### TweenAnimation fields (per entry inside a step)
+
+| Field | Description |
+|---|---|
+| Type | `Move`, `Rotate`, `Scale`, `PunchPosition`, `PunchRotation`, `PunchScale`, `ShakePosition`, `ShakeRotation` |
+| Sequence Mode | `Append` plays after the previous tween; `Join` plays at the same time |
+| Axis | Local axis or combination to affect: `X`, `Y`, `Z`, `XY`, `XZ`, `YZ`, `XYZ` |
+| Target Value | Distance in units, degrees of rotation, or scale amount |
+| Relative | If enabled, the value is an offset from the current transform; otherwise it is an absolute target |
+| Duration | Seconds to complete the tween |
+| Delay | Seconds to wait before this tween starts |
+| Ease Type | DOTween easing curve |
+| Loops | `0` = play once, `-1` = infinite, any positive number = repeat count |
+| Loop Type | `Yoyo` = ping-pong, `Restart` = reset and repeat |
+
+### Example Step Configurations
+
+**Step 0 — lift and scale up:**
+```
+Tween 0 — Move  | Axis: Y | Target: 0.3 | Relative: true | Duration: 0.4 | Ease: OutBack  | SequenceMode: Append
+Tween 1 — Scale | Axis: XYZ | Target: 1.2 | Relative: false | Duration: 0.3 | Ease: OutQuad | SequenceMode: Join
+```
+
+**Step 1 — spin and return to original scale:**
+```
+Tween 0 — Rotate | Axis: Y | Target: 360 | Relative: true | Duration: 0.6 | Ease: InOutSine | SequenceMode: Append
+Tween 1 — Scale  | Axis: XYZ | Target: 1.0 | Relative: false | Duration: 0.3 | Ease: OutQuad  | SequenceMode: Join
+```
+
+**Step 2 — punch to signal end of cycle:**
+```
+Tween 0 — PunchScale | Axis: XYZ | Target: 0.3 | Duration: 0.5 | Ease: OutElastic | SequenceMode: Append
+```
 
 ---
 
@@ -246,6 +289,7 @@ Inside the **Animator Controller** assigned to the model:
 | Project Documentation (Coda) | [Overview — ExpoCAVE](https://coda.io/d/_dC5pWoFBqtU/Overview_sutEokes) |
 | GitHub Repository | [github.com/mherreravsquez/ExpoCAVE](https://github.com/mherreravsquez/ExpoCAVE) |
 | Vuforia Developer Portal | [developer.vuforia.com](https://developer.vuforia.com/) |
+| DOTween | [dotween.demigiant.com](http://dotween.demigiant.com/) |
 | Unity Release Archive | [unity.com/releases/editor/archive](https://unity.com/releases/editor/archive) |
 | Blender | [blender.org](https://www.blender.org/) |
 

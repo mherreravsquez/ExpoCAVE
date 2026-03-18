@@ -1,8 +1,7 @@
 ﻿using UnityEngine;
-using UnityEngine.Events;
-using UnityEngine.Windows;
-using Vuforia;
-using Input = UnityEngine.Input;
+using UnityEngine.InputSystem;
+using UnityEngine.InputSystem.EnhancedTouch;
+using Touch = UnityEngine.InputSystem.EnhancedTouch.Touch;
 
 public class ARInteractionManager : MonoBehaviour
 {
@@ -14,9 +13,19 @@ public class ARInteractionManager : MonoBehaviour
     [Header("Visual Feedback (optional)")]
     [SerializeField] private GameObject hitIndicatorPrefab;
 
+    void OnEnable()
+    {
+        // Enhanced Touch API must be explicitly enabled
+        EnhancedTouchSupport.Enable();
+    }
+
+    void OnDisable()
+    {
+        EnhancedTouchSupport.Disable();
+    }
+
     void Start()
     {
-        // Auto-assign Vuforia's AR camera if not set
         if (arCamera == null)
             arCamera = Camera.main;
     }
@@ -28,15 +37,19 @@ public class ARInteractionManager : MonoBehaviour
 
     private void HandleInput()
     {
-        // Supports both touch (mobile/AR) and mouse (editor testing)
-        if (Input.touchCount > 0 && Input.GetTouch(0).phase == TouchPhase.Began)
+        // --- Mobile: new Input System touch ---
+        if (Touch.activeTouches.Count > 0)
         {
-            Vector2 touchPosition = Input.GetTouch(0).position;
-            PerformRaycast(touchPosition);
+            Touch touch = Touch.activeTouches[0];
+            if (touch.phase == UnityEngine.InputSystem.TouchPhase.Began)
+            {
+                PerformRaycast(touch.screenPosition);
+            }
         }
-        else if (Input.GetMouseButtonDown(0))
+        // --- Editor / Desktop: new Input System mouse ---
+        else if (Mouse.current != null && Mouse.current.leftButton.wasPressedThisFrame)
         {
-            PerformRaycast(Input.mousePosition);
+            PerformRaycast(Mouse.current.position.ReadValue());
         }
     }
 
@@ -48,11 +61,9 @@ public class ARInteractionManager : MonoBehaviour
         {
             Debug.Log($"Hit: {hit.collider.gameObject.name}");
 
-            // Spawn visual indicator at hit point (optional)
             if (hitIndicatorPrefab != null)
                 Instantiate(hitIndicatorPrefab, hit.point, Quaternion.identity);
 
-            // Try to get the interactable component on the hit object or its parents
             ARInteractable interactable = hit.collider.GetComponentInParent<ARInteractable>();
             if (interactable != null)
                 interactable.OnRaycastHit(hit);

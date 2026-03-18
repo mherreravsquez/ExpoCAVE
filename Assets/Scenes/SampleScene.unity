@@ -257,7 +257,7 @@ GameObject:
   - component: {fileID: 851308623}
   - component: {fileID: 851308622}
   - component: {fileID: 851308621}
-  - component: {fileID: 851308620}
+  - component: {fileID: 851308624}
   m_Layer: 0
   m_Name: ImageTarget
   m_TagString: Untagged
@@ -265,25 +265,6 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!114 &851308620
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 851308619}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 1778676317, guid: 8a9a760f95896c34689febc965510927, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Vuforia.Unity.Engine.dll::Vuforia.ImageTargetPreview
-  mObserverBehaviour: {fileID: 851308622}
-  mHiddenRoot: {fileID: 0}
-  mTargetName: pfp
-  mDatasetName: Vuforia/ExpoCave.xml
-  mCastedBehaviour: {fileID: 851308622}
-  mMeshFilter: {fileID: 0}
-  mMeshRenderer: {fileID: 0}
 --- !u!114 &851308621
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -378,7 +359,7 @@ MonoBehaviour:
   mMotionHint: 1
   mTrackingOptimization: 0
   mTrackingOptimizationNeedsUpgrade: 0
-  mPreview: {fileID: 851308620}
+  mPreview: {fileID: 851308624}
 --- !u!4 &851308623
 Transform:
   m_ObjectHideFlags: 0
@@ -395,6 +376,25 @@ Transform:
   - {fileID: 1388512688}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &851308624
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 851308619}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 1778676317, guid: 8a9a760f95896c34689febc965510927, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Vuforia.Unity.Engine.dll::Vuforia.ImageTargetPreview
+  mObserverBehaviour: {fileID: 851308622}
+  mHiddenRoot: {fileID: 0}
+  mTargetName: pfp
+  mDatasetName: Vuforia/ExpoCave.xml
+  mCastedBehaviour: {fileID: 851308622}
+  mMeshFilter: {fileID: 0}
+  mMeshRenderer: {fileID: 0}
 --- !u!1 &1043167383
 GameObject:
   m_ObjectHideFlags: 0
@@ -572,8 +572,8 @@ GameObject:
   - component: {fileID: 1388512687}
   - component: {fileID: 1388512686}
   - component: {fileID: 1388512685}
-  - component: {fileID: 1388512689}
-  m_Layer: 0
+  - component: {fileID: 1388512690}
+  m_Layer: 3
   m_Name: Cube
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -668,33 +668,100 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0.25, z: 0}
-  m_LocalScale: {x: 0.5, y: 0.5, z: 0.5}
+  m_LocalScale: {x: 0.25, y: 0.25, z: 0.25}
   m_ConstrainProportionsScale: 1
   m_Children: []
   m_Father: {fileID: 851308623}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!95 &1388512689
-Animator:
-  serializedVersion: 7
+--- !u!114 &1388512690
+MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1388512684}
   m_Enabled: 1
-  m_Avatar: {fileID: 0}
-  m_Controller: {fileID: 9100000, guid: 260a1676b5cd33f43884082100882faa, type: 2}
-  m_CullingMode: 0
-  m_UpdateMode: 0
-  m_ApplyRootMotion: 0
-  m_LinearVelocityBlending: 0
-  m_StabilizeFeet: 0
-  m_AnimatePhysics: 0
-  m_WarningMessage: 
-  m_HasTransformHierarchy: 1
-  m_AllowConstantClipSamplingOptimization: 1
-  m_KeepAnimatorStateOnDisable: 0
-  m_WriteDefaultValuesOnDisable: 0
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: df89e98388794a12972787845b34d970, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ARInteractable
+  cooldown: 1
+  steps:
+  - label: step_one
+    animations:
+    - type: 2
+      sequenceMode: 0
+      axis: 6
+      targetValue: 0.5
+      relative: 0
+      duration: 1
+      delay: 0
+      easeType: 14
+      loops: 0
+      loopType: 0
+  - label: step_two
+    animations:
+    - type: 1
+      sequenceMode: 0
+      axis: 6
+      targetValue: 360
+      relative: 0
+      duration: 10
+      delay: 0
+      easeType: 14
+      loops: 0
+      loopType: 1
+  loopCycle: 1
+--- !u!1 &2084903566
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 2084903567}
+  - component: {fileID: 2084903568}
+  m_Layer: 0
+  m_Name: RaycastManager
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &2084903567
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2084903566}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0.25, y: 0.175, z: 0.25}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &2084903568
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2084903566}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0913dd4390994d9894a239f4d1715b84, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ARInteractionManager
+  arCamera: {fileID: 1043167388}
+  interactableLayer:
+    serializedVersion: 2
+    m_Bits: 8
+  raycastDistance: 100
+  hitIndicatorPrefab: {fileID: 0}
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0
@@ -702,3 +769,4 @@ SceneRoots:
   - {fileID: 410087041}
   - {fileID: 1043167389}
   - {fileID: 851308623}
+  - {fileID: 2084903567}
