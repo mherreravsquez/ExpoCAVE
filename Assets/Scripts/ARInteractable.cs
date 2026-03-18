@@ -1,5 +1,6 @@
 ﻿using UnityEngine;
 using DG.Tweening;
+using System.Collections;
 using System.Collections.Generic;
 
 public class ARInteractable : MonoBehaviour
@@ -11,23 +12,55 @@ public class ARInteractable : MonoBehaviour
     [SerializeField] private List<AnimationStep> steps = new List<AnimationStep>();
 
     [Header("Cycle Behavior")]
-    [SerializeField] private bool loopCycle = true; // when last step is reached, go back to 0
+    [SerializeField] private bool loopCycle = true;
+
+    [Header("Audio Steps (ARButton only)")]
+    [Tooltip("Only used when this GameObject's tag is set to ARButton.")]
+    [SerializeField] private List<AudioClip> audioSteps = new List<AudioClip>();
+    [SerializeField] private bool loopAudioCycle = true;
+    [SerializeField] [Range(0f, 1f)] private float audioVolume = 1f;
 
     private int currentStep = 0;
+    private int currentAudioStep = 0;
     private float lastHitTime = -Mathf.Infinity;
     private Sequence activeSequence;
+    private AudioSource audioSource;
+    private bool isPlayingAudio = false;
+
+    private void Awake()
+    {
+        // Only set up AudioSource if this object is tagged as ARButton
+        if (CompareTag("ARButton"))
+        {
+            audioSource = gameObject.AddComponent<AudioSource>();
+            audioSource.playOnAwake = false;
+            audioSource.spatialBlend = 0f; // 2D audio; set to 1 for 3D positional
+            audioSource.volume = audioVolume;
+        }
+    }
 
     public void OnRaycastHit(RaycastHit hit)
     {
         if (Time.time - lastHitTime < cooldown) return;
         if (activeSequence != null && activeSequence.IsPlaying()) return;
+        if (isPlayingAudio) return;
         lastHitTime = Time.time;
 
-        PlayStep(currentStep);
+        bool hasSteps = steps != null && steps.Count > 0;
 
-        currentStep++;
-        if (currentStep >= steps.Count)
-            currentStep = loopCycle ? 0 : steps.Count - 1;
+        if (hasSteps)
+        {
+            PlayStep(currentStep);
+
+            currentStep++;
+            if (currentStep >= steps.Count)
+                currentStep = loopCycle ? 0 : steps.Count - 1;
+        }
+        else if (CompareTag("ARButton"))
+        {
+            // No animation steps — go straight to audio
+            TryPlayNextAudio();
+        }
     }
 
     private void PlayStep(int index)
@@ -48,17 +81,49 @@ public class ARInteractable : MonoBehaviour
                 activeSequence.Append(t);
         }
 
+        // If tagged as ARButton, queue audio to play once the animation finishes
+        if (CompareTag("ARButton") && audioSteps != null && audioSteps.Count > 0)
+            activeSequence.OnComplete(() => TryPlayNextAudio());
+
         activeSequence.Play();
+    }
+
+    private void TryPlayNextAudio()
+    {
+        if (audioSource == null) return;
+        if (audioSteps == null || audioSteps.Count == 0) return;
+        if (isPlayingAudio) return;
+
+        AudioClip clip = audioSteps[currentAudioStep];
+
+        if (clip != null)
+            StartCoroutine(PlayAudioClip(clip));
+
+        currentAudioStep++;
+        if (currentAudioStep >= audioSteps.Count)
+            currentAudioStep = loopAudioCycle ? 0 : audioSteps.Count - 1;
+    }
+
+    private IEnumerator PlayAudioClip(AudioClip clip)
+    {
+        isPlayingAudio = true;
+        audioSource.clip = clip;
+        audioSource.Play();
+
+        yield return new WaitWhile(() => audioSource.isPlaying);
+
+        isPlayingAudio = false;
     }
 
     private void OnDestroy()
     {
         activeSequence?.Kill();
+        StopAllCoroutines();
     }
 }
 
 // ─────────────────────────────────────────────────────────────
-//  One "step" = one click. Each step holds any number of tweens.
+//  Each animation plays after the old one finishes
 // ─────────────────────────────────────────────────────────────
 
 [System.Serializable]

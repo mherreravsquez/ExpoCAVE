@@ -1,6 +1,7 @@
 ﻿using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.InputSystem.EnhancedTouch;
+using UnityEngine.Serialization;
 using Touch = UnityEngine.InputSystem.EnhancedTouch.Touch;
 
 public class ARInteractionManager : MonoBehaviour
@@ -10,12 +11,10 @@ public class ARInteractionManager : MonoBehaviour
     [SerializeField] private LayerMask interactableLayer;
     [SerializeField] private float raycastDistance = 100f;
 
-    [Header("Visual Feedback (optional)")]
-    [SerializeField] private GameObject hitIndicatorPrefab;
+    [SerializeField] private GameObject ARButtons;
 
     void OnEnable()
     {
-        // Enhanced Touch API must be explicitly enabled
         EnhancedTouchSupport.Enable();
     }
 
@@ -37,7 +36,6 @@ public class ARInteractionManager : MonoBehaviour
 
     private void HandleInput()
     {
-        // --- Mobile: new Input System touch ---
         if (Touch.activeTouches.Count > 0)
         {
             Touch touch = Touch.activeTouches[0];
@@ -46,7 +44,7 @@ public class ARInteractionManager : MonoBehaviour
                 PerformRaycast(touch.screenPosition);
             }
         }
-        // --- Editor / Desktop: new Input System mouse ---
+        // For testing with webcam
         else if (Mouse.current != null && Mouse.current.leftButton.wasPressedThisFrame)
         {
             PerformRaycast(Mouse.current.position.ReadValue());
@@ -61,8 +59,8 @@ public class ARInteractionManager : MonoBehaviour
         {
             Debug.Log($"Hit: {hit.collider.gameObject.name}");
 
-            if (hitIndicatorPrefab != null)
-                Instantiate(hitIndicatorPrefab, hit.point, Quaternion.identity);
+            if (ARButtons != null)
+                Instantiate(ARButtons, hit.point, Quaternion.identity);
 
             ARInteractable interactable = hit.collider.GetComponentInParent<ARInteractable>();
             if (interactable != null)

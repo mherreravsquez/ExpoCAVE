@@ -97,9 +97,14 @@ The scene is built around Vuforia **Image Targets**, each of which parents a 3D 
 ARScene
 ├── AR Camera  (Vuforia ARCamera prefab)
 ├── ImageTarget
-│   └── 3D Model
+│   └── 3D Model  [tag: Interactable]
 │       ├── Collider  (MeshCollider or BoxCollider)
 │       └── ARInteractable.cs
+├── ImageTarget
+│   └── 3D Model  [tag: ARButton]
+│       ├── Collider  (MeshCollider or BoxCollider)
+│       ├── ARInteractable.cs  (with Audio Steps configured)
+│       └── AudioSource  (added automatically at runtime)
 ├── RaycastManager  (empty GameObject)
 │   └── ARInteractionManager.cs
 └── ImageTarget
@@ -118,12 +123,30 @@ ARInteractionManager
        v
 Physics.Raycast -----> hit? -----> ARInteractable.OnRaycastHit()
                                            |
+                              is animation running? --yes--> blocked
+                              is audio playing?     --yes--> blocked
+                                           |
                                            v
                                   Advance step index
                                            |
-                                           v
-                                DOTween Sequence
-                             (plays all tweens in step)
+                                 ┌─────────┴──────────┐
+                                 |                     |
+                            has steps?            tag == ARButton
+                            (DOTween)             + no steps?
+                                 |                     |
+                                 v                     v
+                          DOTween Sequence        Play next
+                          plays all tweens        AudioClip
+                          in current step              |
+                                 |                     |
+                     tag == ARButton?            wait until
+                                 |               clip ends
+                                 v
+                         OnComplete callback
+                                 |
+                                 v
+                          Play next AudioClip
+                          (sequential, gated)
 ```
 
 ---
@@ -171,7 +194,9 @@ Physics.Raycast -----> hit? -----> ARInteractable.OnRaycastHit()
 
 Interaction is handled through touch-based raycasting from the AR camera onto the 3D models in the scene. Animations are driven entirely by **DOTween** — there is no Animator Controller or Unity Animation system involved.
 
-Each model holds a list of **Animation Steps**. Every tap on the model advances to the next step and plays its configured tweens. When the last step is reached, the cycle restarts from the beginning (configurable).
+Each model holds a list of **Animation Steps**. Every tap advances to the next step and plays its configured tweens. When the last step is reached, the cycle restarts from the beginning (configurable).
+
+Models tagged as **ARButton** additionally support a list of **Audio Steps**. Once all animation steps have finished playing, each subsequent tap plays the next AudioClip in sequence. Audio playback is fully gated — a tap is ignored if an animation is currently running or if a clip is still playing.
 
 ### Scripts
 
@@ -195,24 +220,51 @@ private void PerformRaycast(Vector2 screenPosition)
 
 #### `ARInteractable.cs`
 
-Attached to each 3D model. Maintains a step index that advances on every valid tap and plays the corresponding DOTween sequence. A new tap is ignored if an animation is already running or the cooldown has not elapsed.
+Attached to each 3D model. Maintains a step index that advances on every valid tap and plays the corresponding DOTween sequence. On objects tagged `ARButton`, an `AudioSource` is added automatically at runtime and audio clips are played sequentially once each animation sequence completes.
 
 ```csharp
 public void OnRaycastHit(RaycastHit hit)
 {
     if (Time.time - lastHitTime < cooldown) return;
     if (activeSequence != null && activeSequence.IsPlaying()) return;
+    if (isPlayingAudio) return;
     lastHitTime = Time.time;
 
-    PlayStep(currentStep);
+    bool hasSteps = steps != null && steps.Count > 0;
 
-    currentStep++;
-    if (currentStep >= steps.Count)
-        currentStep = loopCycle ? 0 : steps.Count - 1;
+    if (hasSteps)
+    {
+        PlayStep(currentStep);
+        currentStep++;
+        if (currentStep >= steps.Count)
+            currentStep = loopCycle ? 0 : steps.Count - 1;
+    }
+    else if (CompareTag("ARButton"))
+    {
+        TryPlayNextAudio();
+    }
 }
 ```
 
-Each step holds any number of `TweenAnimation` entries. Within a step, animations can be chained (`Append`) or played simultaneously (`Join`).
+Audio is queued via DOTween's `OnComplete` callback so it only starts after the tween finishes:
+
+```csharp
+if (CompareTag("ARButton") && audioSteps != null && audioSteps.Count > 0)
+    activeSequence.OnComplete(() => TryPlayNextAudio());
+```
+
+A coroutine holds the `isPlayingAudio` flag true for the entire duration of the clip, preventing any input from interrupting it:
+
+```csharp
+private IEnumerator PlayAudioClip(AudioClip clip)
+{
+    isPlayingAudio = true;
+    audioSource.clip = clip;
+    audioSource.Play();
+    yield return new WaitWhile(() => audioSource.isPlaying);
+    isPlayingAudio = false;
+}
+```
 
 #### `VuforiaTargetHandler.cs`
 
@@ -243,8 +295,11 @@ private void OnStatusChanged(ObserverBehaviour behaviour, TargetStatus status)
 | Field | Description |
 |---|---|
 | Cooldown | Minimum seconds between taps. Default: `0.5` |
-| Loop Cycle | If enabled, the step index resets to 0 after the last step |
+| Loop Cycle | If enabled, the animation step index resets to 0 after the last step |
 | Steps | List of animation steps. Each step plays on one tap |
+| Audio Steps | List of AudioClips. Only active when the GameObject tag is `ARButton` |
+| Loop Audio Cycle | If enabled, the audio step index resets to 0 after the last clip |
+| Audio Volume | Playback volume for all audio clips. Range: 0 to 1 |
 
 #### TweenAnimation fields (per entry inside a step)
 
@@ -261,23 +316,33 @@ private void OnStatusChanged(ObserverBehaviour behaviour, TargetStatus status)
 | Loops | `0` = play once, `-1` = infinite, any positive number = repeat count |
 | Loop Type | `Yoyo` = ping-pong, `Restart` = reset and repeat |
 
-### Example Step Configurations
+### ARButton Tag Setup
 
-**Step 0 — lift and scale up:**
-```
-Tween 0 — Move  | Axis: Y | Target: 0.3 | Relative: true | Duration: 0.4 | Ease: OutBack  | SequenceMode: Append
-Tween 1 — Scale | Axis: XYZ | Target: 1.2 | Relative: false | Duration: 0.3 | Ease: OutQuad | SequenceMode: Join
-```
+To enable audio on a model, its GameObject tag must be set to `ARButton`. If the tag does not exist yet, create it before assigning it:
 
-**Step 1 — spin and return to original scale:**
-```
-Tween 0 — Rotate | Axis: Y | Target: 360 | Relative: true | Duration: 0.6 | Ease: InOutSine | SequenceMode: Append
-Tween 1 — Scale  | Axis: XYZ | Target: 1.0 | Relative: false | Duration: 0.3 | Ease: OutQuad  | SequenceMode: Join
-```
+1. Select the GameObject in the Hierarchy
+2. Click the **Tag** dropdown at the top of the Inspector
+3. Select **Add Tag**, create a new tag named `ARButton`
+4. Return to the GameObject and assign the `ARButton` tag
 
-**Step 2 — punch to signal end of cycle:**
+The `AudioSource` component is added automatically by the script at runtime — it does not need to be added manually.
+
+### Example Configuration
+
+**Model with animation and audio (tagged ARButton):**
+
 ```
-Tween 0 — PunchScale | Axis: XYZ | Target: 0.3 | Duration: 0.5 | Ease: OutElastic | SequenceMode: Append
+Step 0 — "Appear"
+  Tween 0 — Scale | Axis: XYZ | Target: 1.0 | Relative: false | Duration: 0.4 | Ease: OutBack
+  Audio after step: clip_narration_01.wav
+
+Step 1 — "Highlight"
+  Tween 0 — PunchScale | Axis: XYZ | Target: 0.2 | Duration: 0.4 | Ease: OutElastic
+  Audio after step: clip_narration_02.wav
+
+Step 2 — "Dismiss"
+  Tween 0 — Scale | Axis: XYZ | Target: 0.0 | Relative: false | Duration: 0.3 | Ease: InBack
+  Audio after step: clip_narration_03.wav
 ```
 
 ---
