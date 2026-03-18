@@ -29,12 +29,11 @@ public class ARInteractable : MonoBehaviour
 
     private void Awake()
     {
-        // Only set up AudioSource if this object is tagged as ARButton
         if (CompareTag("ARButton"))
         {
             audioSource = gameObject.AddComponent<AudioSource>();
             audioSource.playOnAwake = false;
-            audioSource.spatialBlend = 0f; // 2D audio; set to 1 for 3D positional
+            audioSource.spatialBlend = 0f;
             audioSource.volume = audioVolume;
         }
     }
@@ -58,7 +57,6 @@ public class ARInteractable : MonoBehaviour
         }
         else if (CompareTag("ARButton"))
         {
-            // No animation steps — go straight to audio
             TryPlayNextAudio();
         }
     }
@@ -72,7 +70,10 @@ public class ARInteractable : MonoBehaviour
 
         foreach (TweenAnimation anim in steps[index].animations)
         {
-            Tween t = anim.BuildTween(transform);
+            // Use the override target if assigned, otherwise fall back to this transform
+            Transform target = anim.targetOverride != null ? anim.targetOverride : transform;
+
+            Tween t = anim.BuildTween(target);
             if (t == null) continue;
 
             if (anim.sequenceMode == SequenceMode.Join)
@@ -81,7 +82,6 @@ public class ARInteractable : MonoBehaviour
                 activeSequence.Append(t);
         }
 
-        // If tagged as ARButton, queue audio to play once the animation finishes
         if (CompareTag("ARButton") && audioSteps != null && audioSteps.Count > 0)
             activeSequence.OnComplete(() => TryPlayNextAudio());
 
@@ -136,6 +136,10 @@ public class AnimationStep
 [System.Serializable]
 public class TweenAnimation
 {
+    [Header("Target")]
+    [Tooltip("GameObject to animate. If left empty, the GameObject with ARInteractable will be used.")]
+    public Transform targetOverride;
+
     [Header("Type")]
     public AnimationType type = AnimationType.Move;
     public SequenceMode sequenceMode = SequenceMode.Append;
