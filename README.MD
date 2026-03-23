@@ -91,30 +91,40 @@ ExpoCAVE/
 
 ## Scene Architecture
 
-The scene is built around Vuforia **Image Targets**, each of which parents a 3D model with its own interactable component. A single manager object handles all raycasting from the AR camera.
+Each AR marker follows the same hierarchy. The `ImageTarget` owns a single child that Vuforia enables and disables on tracking. All interactable content lives inside that child.
 
 ```
-ARScene
-├── AR Camera  (Vuforia ARCamera prefab)
-├── ImageTarget
-│   └── 3D Model  [tag: Interactable]
-│       ├── Collider  (MeshCollider or BoxCollider)
-│       └── ARInteractable.cs
-├── ImageTarget
-│   └── 3D Model  [tag: ARButton]
-│       ├── Collider  (MeshCollider or BoxCollider)
-│       ├── ARInteractable.cs  (with Audio Steps configured)
-│       └── AudioSource  (added automatically at runtime)
-├── RaycastManager  (empty GameObject)
-│   └── ARInteractionManager.cs
-└── ImageTarget
-    └── VuforiaTargetHandler.cs
+ImageTarget
+├── VuforiaTargetHandler.cs
+│
+└── [GameObject to show]              (Vuforia activates/deactivates this)
+      │                                no scripts · no collider · no layer
+      │
+      └── [Collider to raycast and Scripts]
+            ├── MeshCollider / BoxCollider
+            ├── Layer: Interactable
+            └── ARInteractable.cs
+                  Steps        → DOTween animations targeting child meshes via Target Override
+                  Audio Clips  → narration clips, one per tap
+                  Feedback     → shrink/expand on the assigned Feedback Mesh
 ```
+
+### GameObject Responsibilities
+
+| Object | Layer | Collider | Script | Purpose |
+|---|---|---|---|---|
+| `ImageTarget` | — | — | `VuforiaTargetHandler.cs` | Vuforia marker root |
+| `[GameObject to show]` | — | — | — | Vuforia visibility container |
+| `[Collider to raycast and Scripts]` | `Interactable` | Yes | `ARInteractable.cs` | Tap target, drives all audio and animation |
+| Visual mesh children | — | — | — | Visual only, referenced via Target Override |
 
 ### Interaction Flow
 
 ```
-User touch input
+Model appears (OnEnable)
+  state resets — model is silent, waiting for input
+
+User taps
        |
        v
 ARInteractionManager
@@ -123,30 +133,30 @@ ARInteractionManager
        v
 Physics.Raycast -----> hit? -----> ARInteractable.OnRaycastHit()
                                            |
-                              is animation running? --yes--> blocked
                               is audio playing?     --yes--> blocked
+                              is animation running? --yes--> blocked
                                            |
                                            v
-                                  Advance step index
+                                    PlayFeedback()
+                                 (shrink + expand on feedbackMesh)
                                            |
-                                 ┌─────────┴──────────┐
-                                 |                     |
-                            has steps?            tag == ARButton
-                            (DOTween)             + no steps?
-                                 |                     |
-                                 v                     v
-                          DOTween Sequence        Play next
-                          plays all tweens        AudioClip
-                          in current step              |
-                                 |                     |
-                     tag == ARButton?            wait until
-                                 |               clip ends
-                                 v
-                         OnComplete callback
-                                 |
-                                 v
-                          Play next AudioClip
-                          (sequential, gated)
+                                           v
+                                  Play audioClips[currentStep]
+                                  (WaitWhile playing)
+                                           |
+                                           v
+                                  Play DOTween step[currentStep]
+                                  (animation fires as transition)
+                                           |
+                                  Advance step index
+```
+
+So for a three-state object (e.g. ice → water → cloud):
+
+```
+Tap 1  →  clip[0] plays  →  step[0] animates  (solid state)
+Tap 2  →  clip[1] plays  →  step[1] animates  (liquid state)
+Tap 3  →  clip[2] plays  →  step[2] animates  (gas state)
 ```
 
 ---
@@ -192,83 +202,100 @@ Physics.Raycast -----> hit? -----> ARInteractable.OnRaycastHit()
 
 ## AR Interaction System
 
-Interaction is handled through touch-based raycasting from the AR camera onto the 3D models in the scene. Animations are driven entirely by **DOTween** — there is no Animator Controller or Unity Animation system involved.
+Interaction is handled through touch-based raycasting from the AR camera. Animations are driven entirely by **DOTween** — there is no Animator Controller or Unity Animation system involved. A single script, `ARInteractable`, handles all tap input, audio narration, visual feedback, and DOTween animation.
 
-Each model holds a list of **Animation Steps**. Every tap advances to the next step and plays its configured tweens. When the last step is reached, the cycle restarts from the beginning (configurable).
+The interaction model is **audio-first**: every tap plays the narration clip for that step first, and only once the clip finishes does the transition animation fire. This means the audio narrates what is about to happen, and the model physically transitions into the new state after the explanation ends. Input is blocked for the full duration of both the clip and the animation, so the user cannot skip ahead.
 
-Models tagged as **ARButton** additionally support a list of **Audio Steps**. Once all animation steps have finished playing, each subsequent tap plays the next AudioClip in sequence. Audio playback is fully gated — a tap is ignored if an animation is currently running or if a clip is still playing.
+The model appears silently when the image target is detected. No audio plays automatically — the first clip only triggers on the first tap.
 
 ### Scripts
 
 #### `ARInteractionManager.cs`
 
-Handles touch and mouse input using Unity's Input System package, constructs a ray from the AR camera, and dispatches the hit to the appropriate interactable object.
+Handles touch and mouse input using Unity's Input System package, constructs a ray from the AR camera, and dispatches the hit to `ARInteractable`.
 
 ```csharp
 private void PerformRaycast(Vector2 screenPosition)
 {
     Ray ray = arCamera.ScreenPointToRay(screenPosition);
 
-    if (Physics.Raycast(ray, out RaycastHit hit, raycastDistance, interactableLayer))
-    {
-        ARInteractable interactable = hit.collider.GetComponentInParent<ARInteractable>();
-        if (interactable != null)
-            interactable.OnRaycastHit(hit);
-    }
+    if (!Physics.Raycast(ray, out RaycastHit hit, raycastDistance, interactableLayer))
+        return;
+
+    ARInteractable interactable = hit.collider.GetComponentInParent<ARInteractable>();
+    if (interactable != null)
+        interactable.OnRaycastHit(hit);
 }
 ```
 
 #### `ARInteractable.cs`
 
-Attached to each 3D model. Maintains a step index that advances on every valid tap and plays the corresponding DOTween sequence. On objects tagged `ARButton`, an `AudioSource` is added automatically at runtime and audio clips are played sequentially once each animation sequence completes.
+The single script that manages the entire interaction lifecycle for a model. On a valid tap it plays the shrink/expand feedback, then starts a coroutine that plays the audio clip and waits for it to finish before firing the DOTween animation step.
 
 ```csharp
 public void OnRaycastHit(RaycastHit hit)
 {
-    if (Time.time - lastHitTime < cooldown) return;
-    if (activeSequence != null && activeSequence.IsPlaying()) return;
     if (isPlayingAudio) return;
+    if (IsAnimating) return;
+    if (Time.time - lastHitTime < cooldown) return;
     lastHitTime = Time.time;
 
-    bool hasSteps = steps != null && steps.Count > 0;
+    if (steps == null || steps.Count == 0) return;
 
-    if (hasSteps)
-    {
-        PlayStep(currentStep);
-        currentStep++;
-        if (currentStep >= steps.Count)
-            currentStep = loopCycle ? 0 : steps.Count - 1;
-    }
-    else if (CompareTag("ARButton"))
-    {
-        TryPlayNextAudio();
-    }
+    PlayFeedback();
+
+    int clipIndex = currentStep;
+    int stepIndex = currentStep;
+
+    currentStep++;
+    if (currentStep >= steps.Count)
+        currentStep = loopCycle ? 0 : steps.Count - 1;
+
+    StartCoroutine(PlayClipThenAnimate(clipIndex, stepIndex));
 }
 ```
 
-Audio is queued via DOTween's `OnComplete` callback so it only starts after the tween finishes:
+The coroutine enforces the audio-first order. `yield return StartCoroutine(PlayClipAndWait(...))` blocks until the clip finishes, then `PlayStep` fires immediately after:
 
 ```csharp
-if (CompareTag("ARButton") && audioSteps != null && audioSteps.Count > 0)
-    activeSequence.OnComplete(() => TryPlayNextAudio());
-```
-
-A coroutine holds the `isPlayingAudio` flag true for the entire duration of the clip, preventing any input from interrupting it:
-
-```csharp
-private IEnumerator PlayAudioClip(AudioClip clip)
+private IEnumerator PlayClipThenAnimate(int clipIndex, int stepIndex)
 {
-    isPlayingAudio = true;
-    audioSource.clip = clip;
-    audioSource.Play();
-    yield return new WaitWhile(() => audioSource.isPlaying);
-    isPlayingAudio = false;
+    yield return StartCoroutine(PlayClipAndWait(clipIndex));
+    PlayStep(stepIndex);
 }
 ```
+
+The feedback animation runs on its own independent `feedbackSequence` so it plays immediately on tap without waiting for audio:
+
+```csharp
+private void PlayFeedback()
+{
+    feedbackSequence?.Kill(complete: false);
+    Vector3 original = feedbackMesh.localScale;
+
+    feedbackSequence = DOTween.Sequence();
+    feedbackSequence.Append(
+        feedbackMesh.DOScale(original * shrinkScale, shrinkDuration).SetEase(Ease.OutQuad)
+    );
+    feedbackSequence.Append(
+        feedbackMesh.DOScale(original, expandDuration).SetEase(Ease.OutBack)
+    );
+    feedbackSequence.Play();
+}
+```
+
+Inside `PlayStep`, each tween resolves its target. If `targetOverride` is assigned that transform is used, otherwise the script falls back to its own transform:
+
+```csharp
+Transform target = anim.targetOverride != null ? anim.targetOverride : transform;
+Tween t = anim.BuildTween(target);
+```
+
+When the image target is lost, `OnDisable` kills all sequences, stops audio, and resets the `isPlayingAudio` flag so there are no stuck states on the next detection. `OnEnable` resets the step index and cooldown cleanly without playing anything.
 
 #### `VuforiaTargetHandler.cs`
 
-Listens to Vuforia's `OnTargetStatusChanged` callback and enables or disables the model's collider depending on whether the Image Target is currently being tracked. This prevents interaction with models that are not visible in the scene.
+Attached to the `ImageTarget`. Enables or disables the child colliders depending on whether the marker is currently tracked.
 
 ```csharp
 private void OnStatusChanged(ObserverBehaviour behaviour, TargetStatus status)
@@ -295,16 +322,20 @@ private void OnStatusChanged(ObserverBehaviour behaviour, TargetStatus status)
 | Field | Description |
 |---|---|
 | Cooldown | Minimum seconds between taps. Default: `0.5` |
-| Loop Cycle | If enabled, the animation step index resets to 0 after the last step |
-| Steps | List of animation steps. Each step plays on one tap |
-| Audio Steps | List of AudioClips. Only active when the GameObject tag is `ARButton` |
-| Loop Audio Cycle | If enabled, the audio step index resets to 0 after the last clip |
-| Audio Volume | Playback volume for all audio clips. Range: 0 to 1 |
+| Steps | List of animation steps. Each step plays as a transition after its clip ends |
+| Loop Cycle | If enabled, the step index resets to 0 after the last step |
+| Audio Clips | Clip at index N plays on tap N, before animation step N fires |
+| Audio Volume | Playback volume for all clips. Range: 0 to 1 |
+| Feedback Mesh | The transform that plays the shrink/expand animation on tap. Falls back to this transform if empty |
+| Shrink Scale | Scale multiplier applied on tap. Default: `0.85` |
+| Shrink Duration | Duration of the shrink phase in seconds. Default: `0.08` |
+| Expand Duration | Duration of the expand phase in seconds. Default: `0.15` |
 
 #### TweenAnimation fields (per entry inside a step)
 
 | Field | Description |
 |---|---|
+| Target Override | Reference to the GameObject to animate. If left empty, the script's own transform is used |
 | Type | `Move`, `Rotate`, `Scale`, `PunchPosition`, `PunchRotation`, `PunchScale`, `ShakePosition`, `ShakeRotation` |
 | Sequence Mode | `Append` plays after the previous tween; `Join` plays at the same time |
 | Axis | Local axis or combination to affect: `X`, `Y`, `Z`, `XY`, `XZ`, `YZ`, `XYZ` |
@@ -316,33 +347,60 @@ private void OnStatusChanged(ObserverBehaviour behaviour, TargetStatus status)
 | Loops | `0` = play once, `-1` = infinite, any positive number = repeat count |
 | Loop Type | `Yoyo` = ping-pong, `Restart` = reset and repeat |
 
-### ARButton Tag Setup
-
-To enable audio on a model, its GameObject tag must be set to `ARButton`. If the tag does not exist yet, create it before assigning it:
-
-1. Select the GameObject in the Hierarchy
-2. Click the **Tag** dropdown at the top of the Inspector
-3. Select **Add Tag**, create a new tag named `ARButton`
-4. Return to the GameObject and assign the `ARButton` tag
-
-The `AudioSource` component is added automatically by the script at runtime — it does not need to be added manually.
-
 ### Example Configuration
 
-**Model with animation and audio (tagged ARButton):**
+A three-state model representing the water cycle:
 
 ```
-Step 0 — "Appear"
-  Tween 0 — Scale | Axis: XYZ | Target: 1.0 | Relative: false | Duration: 0.4 | Ease: OutBack
-  Audio after step: clip_narration_01.wav
+[Collider to raycast and Scripts]
+  Layer: Interactable
+  ARInteractable.cs
+    Cooldown:    0.5
+    Loop Cycle:  false
+    Feedback Mesh → [visual mesh child]
 
-Step 1 — "Highlight"
-  Tween 0 — PunchScale | Axis: XYZ | Target: 0.2 | Duration: 0.4 | Ease: OutElastic
-  Audio after step: clip_narration_02.wav
+    Steps:
+      Step 0 — "Ice to Water"
+        Tween 0:
+          Target Override → [IceMesh]
+          Type            → Scale
+          Axis            → XYZ
+          Target Value    → 0.0
+          Relative        → false
+          Duration        → 0.6
+          Ease Type       → InBack
+        Tween 1:
+          Target Override → [WaterMesh]
+          Type            → Scale
+          Axis            → XYZ
+          Target Value    → 1.0
+          Relative        → false
+          Duration        → 0.6
+          Ease Type       → OutBack
+          Sequence Mode   → Join
 
-Step 2 — "Dismiss"
-  Tween 0 — Scale | Axis: XYZ | Target: 0.0 | Relative: false | Duration: 0.3 | Ease: InBack
-  Audio after step: clip_narration_03.wav
+      Step 1 — "Water to Cloud"
+        Tween 0:
+          Target Override → [WaterMesh]
+          Type            → Scale
+          Axis            → XYZ
+          Target Value    → 0.0
+          Relative        → false
+          Duration        → 0.6
+          Ease Type       → InBack
+        Tween 1:
+          Target Override → [CloudMesh]
+          Type            → Scale
+          Axis            → XYZ
+          Target Value    → 1.0
+          Relative        → false
+          Duration        → 0.6
+          Ease Type       → OutBack
+          Sequence Mode   → Join
+
+    Audio Clips:
+      [0] → ice_narration.wav    (tap 1: explains solid state, then ice→water transition plays)
+      [1] → water_narration.wav  (tap 2: explains liquid state, then water→cloud transition plays)
 ```
 
 ---

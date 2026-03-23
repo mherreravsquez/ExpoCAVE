@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 using DG.Tweening;
 using System.Collections;
 using System.Collections.Generic;
@@ -8,57 +8,122 @@ public class ARInteractable : MonoBehaviour
     [Header("Interaction")]
     [SerializeField] private float cooldown = 0.5f;
 
-    [Header("Animation Steps — each click plays the next one")]
+    [Header("Animation Steps — each tap plays the next one")]
     [SerializeField] private List<AnimationStep> steps = new List<AnimationStep>();
 
     [Header("Cycle Behavior")]
     [SerializeField] private bool loopCycle = true;
 
-    [Header("Audio Steps (ARButton only)")]
-    [Tooltip("Only used when this GameObject's tag is set to ARButton.")]
-    [SerializeField] private List<AudioClip> audioSteps = new List<AudioClip>();
-    [SerializeField] private bool loopAudioCycle = true;
+    [Header("Audio")]
+    [Tooltip("Clip [0] plays on appear (no animation). " +
+             "Clip [N+1] plays on tap N, then animation step [N] fires as a transition.")]
+    [SerializeField] private List<AudioClip> audioClips = new List<AudioClip>();
     [SerializeField] [Range(0f, 1f)] private float audioVolume = 1f;
 
-    private int currentStep = 0;
-    private int currentAudioStep = 0;
-    private float lastHitTime = -Mathf.Infinity;
+    [Header("Tap Feedback")]
+    [Tooltip("Optional mesh to apply the shrink/expand feedback on tap. Falls back to this transform if empty.")]
+    [SerializeField] private Transform feedbackMesh;
+    [SerializeField] private float shrinkScale    = 0.85f;
+    [SerializeField] private float shrinkDuration = 0.08f;
+    [SerializeField] private float expandDuration = 0.15f;
+
+    private int currentStep     = 0;
+    private float lastHitTime   = -Mathf.Infinity;
     private Sequence activeSequence;
+    private Sequence feedbackSequence;
     private AudioSource audioSource;
     private bool isPlayingAudio = false;
 
+    public bool IsAnimating => activeSequence != null && activeSequence.IsPlaying();
+
+    // ── Lifecycle ────────────────────────────────────────────────────────────
+
     private void Awake()
     {
-        if (CompareTag("ARButton"))
-        {
-            audioSource = gameObject.AddComponent<AudioSource>();
-            audioSource.playOnAwake = false;
-            audioSource.spatialBlend = 0f;
-            audioSource.volume = audioVolume;
-        }
+        audioSource = gameObject.AddComponent<AudioSource>();
+        audioSource.playOnAwake = false;
+        audioSource.spatialBlend = 0f;
+        audioSource.volume = audioVolume;
+
+        if (feedbackMesh == null)
+            feedbackMesh = transform;
     }
+
+    private void OnEnable()
+    {
+        activeSequence?.Kill(complete: false);
+        feedbackSequence?.Kill(complete: false);
+        currentStep    = 0;
+        lastHitTime    = -Mathf.Infinity;
+        isPlayingAudio = false;
+        StopAllCoroutines();
+    }
+
+    private void OnDisable()
+    {
+        activeSequence?.Kill(complete: false);
+        feedbackSequence?.Kill(complete: false);
+
+        if (audioSource != null && audioSource.isPlaying)
+            audioSource.Stop();
+
+        isPlayingAudio = false;
+        StopAllCoroutines();
+    }
+
+    // ── Input ────────────────────────────────────────────────────────────────
 
     public void OnRaycastHit(RaycastHit hit)
     {
-        if (Time.time - lastHitTime < cooldown) return;
-        if (activeSequence != null && activeSequence.IsPlaying()) return;
         if (isPlayingAudio) return;
+        if (IsAnimating) return;
+        if (Time.time - lastHitTime < cooldown) return;
         lastHitTime = Time.time;
 
-        bool hasSteps = steps != null && steps.Count > 0;
+        if (steps == null || steps.Count == 0) return;
 
-        if (hasSteps)
-        {
-            PlayStep(currentStep);
+        PlayFeedback();
 
-            currentStep++;
-            if (currentStep >= steps.Count)
-                currentStep = loopCycle ? 0 : steps.Count - 1;
-        }
-        else if (CompareTag("ARButton"))
-        {
-            TryPlayNextAudio();
-        }
+        // Capture indices before advancing so the coroutine closure is safe
+        int clipIndex = currentStep;
+        int stepIndex = currentStep;
+
+        currentStep++;
+        if (currentStep >= steps.Count)
+            currentStep = loopCycle ? 0 : steps.Count - 1;
+
+        // Audio plays first — animation fires as a transition once the clip ends
+        StartCoroutine(PlayClipThenAnimate(clipIndex, stepIndex));
+    }
+
+    // ── Audio → Animation coroutine ──────────────────────────────────────────
+
+    private IEnumerator PlayClipThenAnimate(int clipIndex, int stepIndex)
+    {
+        // Play the narration clip first
+        yield return StartCoroutine(PlayClipAndWait(clipIndex));
+
+        // Once the clip is done, fire the transition animation
+        PlayStep(stepIndex);
+    }
+
+    // ── Animation ────────────────────────────────────────────────────────────
+
+    private void PlayFeedback()
+    {
+        feedbackSequence?.Kill(complete: false);
+        Vector3 original = feedbackMesh.localScale;
+
+        feedbackSequence = DOTween.Sequence();
+        feedbackSequence.Append(
+            feedbackMesh.DOScale(original * shrinkScale, shrinkDuration)
+                        .SetEase(Ease.OutQuad)
+        );
+        feedbackSequence.Append(
+            feedbackMesh.DOScale(original, expandDuration)
+                        .SetEase(Ease.OutBack)
+        );
+        feedbackSequence.Play();
     }
 
     private void PlayStep(int index)
@@ -70,9 +135,7 @@ public class ARInteractable : MonoBehaviour
 
         foreach (TweenAnimation anim in steps[index].animations)
         {
-            // Use the override target if assigned, otherwise fall back to this transform
             Transform target = anim.targetOverride != null ? anim.targetOverride : transform;
-
             Tween t = anim.BuildTween(target);
             if (t == null) continue;
 
@@ -82,30 +145,30 @@ public class ARInteractable : MonoBehaviour
                 activeSequence.Append(t);
         }
 
-        if (CompareTag("ARButton") && audioSteps != null && audioSteps.Count > 0)
-            activeSequence.OnComplete(() => TryPlayNextAudio());
-
         activeSequence.Play();
     }
 
-    private void TryPlayNextAudio()
+    // ── Audio ────────────────────────────────────────────────────────────────
+
+    private void PlayClipAtIndex(int index)
     {
-        if (audioSource == null) return;
-        if (audioSteps == null || audioSteps.Count == 0) return;
-        if (isPlayingAudio) return;
-
-        AudioClip clip = audioSteps[currentAudioStep];
-
+        if (audioClips == null || audioClips.Count == 0) return;
+        if (index < 0 || index >= audioClips.Count) return;
+        AudioClip clip = audioClips[index];
         if (clip != null)
-            StartCoroutine(PlayAudioClip(clip));
-
-        currentAudioStep++;
-        if (currentAudioStep >= audioSteps.Count)
-            currentAudioStep = loopAudioCycle ? 0 : audioSteps.Count - 1;
+            StartCoroutine(PlayClipAndWait(index));
     }
 
-    private IEnumerator PlayAudioClip(AudioClip clip)
+    // Plays a clip and waits for it to finish. Returns the coroutine so it can
+    // be yielded on from PlayClipThenAnimate.
+    private IEnumerator PlayClipAndWait(int index)
     {
+        if (audioClips == null || index < 0 || index >= audioClips.Count)
+            yield break;
+
+        AudioClip clip = audioClips[index];
+        if (clip == null) yield break;
+
         isPlayingAudio = true;
         audioSource.clip = clip;
         audioSource.Play();
@@ -115,15 +178,18 @@ public class ARInteractable : MonoBehaviour
         isPlayingAudio = false;
     }
 
+    // ── Cleanup ──────────────────────────────────────────────────────────────
+
     private void OnDestroy()
     {
         activeSequence?.Kill();
+        feedbackSequence?.Kill();
         StopAllCoroutines();
     }
 }
 
 // ─────────────────────────────────────────────────────────────
-//  Each animation plays after the old one finishes
+//  Data classes
 // ─────────────────────────────────────────────────────────────
 
 [System.Serializable]
@@ -170,33 +236,26 @@ public class TweenAnimation
                     ? t.DOLocalMove(t.localPosition + vec, duration)
                     : t.DOLocalMove(vec, duration);
                 break;
-
             case AnimationType.Rotate:
                 tween = relative
                     ? t.DOLocalRotate(t.localEulerAngles + vec, duration, RotateMode.FastBeyond360)
                     : t.DOLocalRotate(vec, duration, RotateMode.FastBeyond360);
                 break;
-
             case AnimationType.Scale:
                 tween = t.DOScale(relative ? t.localScale + vec : vec, duration);
                 break;
-
             case AnimationType.PunchPosition:
                 tween = t.DOPunchPosition(vec, duration, vibrato: 5, elasticity: 0.5f);
                 break;
-
             case AnimationType.PunchRotation:
                 tween = t.DOPunchRotation(vec, duration, vibrato: 5, elasticity: 0.5f);
                 break;
-
             case AnimationType.PunchScale:
                 tween = t.DOPunchScale(vec, duration, vibrato: 5, elasticity: 0.5f);
                 break;
-
             case AnimationType.ShakePosition:
                 tween = t.DOShakePosition(duration, strength: targetValue);
                 break;
-
             case AnimationType.ShakeRotation:
                 tween = t.DOShakeRotation(duration, strength: targetValue);
                 break;
