@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <QCARConfig>
   <Tracking>
+    <ImageTarget name="cave1" size="0.200000 0.198519" />
     <ImageTarget name="test2" size="0.200000 0.192667" />
     <ImageTarget name="test1" size="0.200000 0.200000" />
   </Tracking>
