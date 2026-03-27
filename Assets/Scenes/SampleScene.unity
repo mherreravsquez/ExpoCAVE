@@ -1232,7 +1232,7 @@ MonoBehaviour:
   m_Script: {fileID: -1826476478, guid: 8a9a760f95896c34689febc965510927, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Vuforia.Unity.Engine.dll::Vuforia.VuforiaBehaviour
-  mWorldCenterMode: 0
+  mWorldCenterMode: 2
   mWorldCenter: {fileID: 5235575506961335754}
 --- !u!81 &1043167387
 AudioListener:
@@ -1465,14 +1465,14 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1426595180}
   serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -3.45, y: 0, z: -0}
-  m_LocalScale: {x: 0.5, y: 0.5, z: 0.5}
+  m_LocalRotation: {x: -0, y: -0.7071068, z: -0, w: 0.7071068}
+  m_LocalPosition: {x: 0, y: 0.26599997, z: -0.8625001}
+  m_LocalScale: {x: 0.12499999, y: 0.12499999, z: 0.12499999}
   m_ConstrainProportionsScale: 1
   m_Children:
   - {fileID: 4083501150684441643}
   - {fileID: 7967766325616905830}
-  m_Father: {fileID: 543450652820689517}
+  m_Father: {fileID: 8909055573319579420}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1949499854
 GameObject:
@@ -2197,7 +2197,6 @@ Transform:
   m_LocalScale: {x: 0.25, y: 0.25, z: 0.25}
   m_ConstrainProportionsScale: 1
   m_Children:
-  - {fileID: 1426595181}
   - {fileID: 729186843442239443}
   - {fileID: 3745622627615099144}
   - {fileID: 5680519943573190079}
@@ -8848,9 +8847,9 @@ MonoBehaviour:
       axis: 1
       targetValue: -450
       relative: 0
-      duration: 1
+      duration: 3
       delay: 0
-      easeType: 24
+      easeType: 1
       loops: 0
       loopType: 0
     - targetOverride: {fileID: 543450652820689517}
@@ -8859,29 +8858,7 @@ MonoBehaviour:
       axis: 6
       targetValue: 0.01
       relative: 0
-      duration: 1
-      delay: 0
-      easeType: 24
-      loops: 0
-      loopType: 0
-    - targetOverride: {fileID: 543450652820689517}
-      type: 2
-      sequenceMode: 0
-      axis: 4
-      targetValue: 0.5
-      relative: 0
-      duration: 1
-      delay: 0
-      easeType: 24
-      loops: 0
-      loopType: 0
-    - targetOverride: {fileID: 1426595181}
-      type: 0
-      sequenceMode: 0
-      axis: 0
-      targetValue: 0
-      relative: 0
-      duration: 1
+      duration: 2
       delay: 0
       easeType: 24
       loops: 0
@@ -8890,9 +8867,9 @@ MonoBehaviour:
       type: 2
       sequenceMode: 0
       axis: 6
-      targetValue: 3
+      targetValue: 2
       relative: 0
-      duration: 1
+      duration: 1.5
       delay: 0
       easeType: 33
       loops: 0
@@ -8905,9 +8882,9 @@ MonoBehaviour:
       axis: 1
       targetValue: -360
       relative: 0
-      duration: 1
+      duration: 3
       delay: 0
-      easeType: 22
+      easeType: 1
       loops: 0
       loopType: 0
     - targetOverride: {fileID: 1426595181}
@@ -8916,7 +8893,7 @@ MonoBehaviour:
       axis: 6
       targetValue: 0.5
       relative: 0
-      duration: 1
+      duration: 1.5
       delay: 0
       easeType: 22
       loops: 0
@@ -8927,29 +8904,18 @@ MonoBehaviour:
       axis: 0
       targetValue: -3.45
       relative: 0
-      duration: 1
+      duration: 3
       delay: 0
       easeType: 17
       loops: 0
       loopType: 0
     - targetOverride: {fileID: 543450652820689517}
-      type: 0
-      sequenceMode: 0
-      axis: 4
-      targetValue: 0
-      relative: 0
-      duration: 1
-      delay: 0
-      easeType: 17
-      loops: 0
-      loopType: 0
-    - targetOverride: {fileID: 543450652820689517}
-      type: 0
+      type: 2
       sequenceMode: 0
       axis: 6
       targetValue: 0.5
       relative: 0
-      duration: 1
+      duration: 1.5
       delay: 0
       easeType: 32
       loops: 0
@@ -14092,6 +14058,7 @@ Transform:
   m_LocalScale: {x: 0.15, y: 0.15, z: 0.15}
   m_ConstrainProportionsScale: 1
   m_Children:
+  - {fileID: 1426595181}
   - {fileID: 543450652820689517}
   m_Father: {fileID: 6975625930671200590}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
