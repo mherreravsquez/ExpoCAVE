@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <QCARConfig>
   <Tracking>
+    <ImageTarget name="cavem5target" size="0.200000 0.266667" />
+    <ImageTarget name="cavem4target" size="0.200000 0.133400" />
+    <ImageTarget name="cave2target" size="0.200000 0.132000" />
     <ImageTarget name="cave01" size="0.200000 0.266667" />
-    <ImageTarget name="cave1" size="0.200000 0.198519" />
-    <ImageTarget name="test2" size="0.200000 0.192667" />
-    <ImageTarget name="test1" size="0.200000 0.200000" />
   </Tracking>
 </QCARConfig>

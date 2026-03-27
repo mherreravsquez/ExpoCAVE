@@ -7,6 +7,16 @@ ModelImporter:
   - first:
       type: UnityEngine:Material
       assembly: UnityEngine.CoreModule
+      name: M4 PARED BASE
+    second: {fileID: 2100000, guid: 4b39b026fad04594d9b371779025c9e8, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: METAL M4 BASE
+    second: {fileID: 2100000, guid: c7751ef2df114bc419c18b24776a4f94, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
       name: Material.001
     second: {fileID: 2100000, guid: a6a0e5584300b0443b3c2e4bb4bf9ad5, type: 2}
   - first:
@@ -34,6 +44,46 @@ ModelImporter:
       assembly: UnityEngine.CoreModule
       name: Material.006
     second: {fileID: 2100000, guid: 5f99b904065d5b1478961f59b6f11bc1, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: PILARES BERTICALES M4 BASE
+    second: {fileID: 2100000, guid: 280e9cda3e8f3774884f0d37d4941e53, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: SOPORTE DATA AIRE M4 BASE
+    second: {fileID: 2100000, guid: 0e0823d70698c0f429ff57f5d4a1ccfd, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Soporte Data M4 Base
+    second: {fileID: 2100000, guid: 3e0ff1c37bf0f964787732ebdc3b2c9c, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Suelo M4 Base
+    second: {fileID: 2100000, guid: a493c8bba6ca7f947b7af8de330af5f4, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: bigas soporte base m4
+    second: {fileID: 2100000, guid: 8778d16f755d2254797149898d942e78, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: bigas superiores m4 base
+    second: {fileID: 2100000, guid: 199f63037a4a20c4b962170e4e01f7c3, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: dATA M4 BASE
+    second: {fileID: 2100000, guid: 090d0308a7278c84cb62d34cf6cb6b83, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: soperte m4 base
+    second: {fileID: 2100000, guid: a3d9379b3b33947408187e87ea7c62a0, type: 2}
   materials:
     materialImportMode: 2
     materialName: 0
