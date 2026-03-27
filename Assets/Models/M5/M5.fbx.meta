@@ -7,6 +7,21 @@ ModelImporter:
   - first:
       type: UnityEngine:Material
       assembly: UnityEngine.CoreModule
+      name: Bigas Superiores Base
+    second: {fileID: 2100000, guid: 797a5b374fa42404abc8c1adab77faa8, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: CAVE5 base
+    second: {fileID: 2100000, guid: 6154fe760d6eb6848983008f3eb2a5e5, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: DATA bASE
+    second: {fileID: 2100000, guid: f4da12ac9ca86174994cb355e9b72647, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
       name: Material.009
     second: {fileID: 2100000, guid: abb3c2fee19d6be4ca5202dceb49d38d, type: 2}
   - first:
@@ -19,6 +34,46 @@ ModelImporter:
       assembly: UnityEngine.CoreModule
       name: Material.011
     second: {fileID: 2100000, guid: 2446b6fb30fbe9b40bbf49130a827e3a, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Metal Base.001
+    second: {fileID: 2100000, guid: 5c5c8d6181153974e89fcfe2c67cc041, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Pilares verticales base
+    second: {fileID: 2100000, guid: d474f650406a08148ad18ecc8a66c648, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: SOPORTE DE DATA MANIJAS BASE
+    second: {fileID: 2100000, guid: e008c9b23f34c6a4eb6e190c1115af8d, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: SoportData Base
+    second: {fileID: 2100000, guid: e585b3d97f1f95d48a6dda642b724a00, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Soporte base
+    second: {fileID: 2100000, guid: f457d29c529996a4783fcc77bfbbc0a4, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Soporte de rejas base
+    second: {fileID: 2100000, guid: 7b47e762b84ccb64bb8afc8ad2ddec6c, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: bigas crusadas base
+    second: {fileID: 2100000, guid: 2ed92b92279da504aa2ea48545f8efad, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: piso base
+    second: {fileID: 2100000, guid: 3f1449b4757824b4a886808d80521c25, type: 2}
   materials:
     materialImportMode: 2
     materialName: 0
