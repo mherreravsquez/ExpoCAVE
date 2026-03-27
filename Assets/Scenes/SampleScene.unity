@@ -326,7 +326,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 1}
   m_AnchorMax: {x: 0, y: 1}
-  m_AnchoredPosition: {x: -527, y: -75}
+  m_AnchoredPosition: {x: -530, y: -75}
   m_SizeDelta: {x: 522.5034, y: 351.2959}
   m_Pivot: {x: 0, y: 1}
 --- !u!114 &144034532
@@ -445,7 +445,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 886328de6a5c14cbb85854fdf1a5085b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: VuforiaScripts::DefaultObserverEventHandler
-  StatusFilter: 1
+  StatusFilter: 0
   UsePoseSmoothing: 1
   AnimationCurve:
     serializedVersion: 2
@@ -1466,7 +1466,7 @@ Transform:
   m_GameObject: {fileID: 1426595180}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0.7071068, z: -0, w: 0.7071068}
-  m_LocalPosition: {x: 0, y: 0.26599997, z: -0.8625001}
+  m_LocalPosition: {x: 0, y: 0.26599997, z: -0.8}
   m_LocalScale: {x: 0.12499999, y: 0.12499999, z: 0.12499999}
   m_ConstrainProportionsScale: 1
   m_Children:
@@ -1505,6 +1505,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::UIManager
   panel: {fileID: 144034530}
   arrow: {fileID: 125440979}
+  posX: 530
 --- !u!4 &1949499856
 Transform:
   m_ObjectHideFlags: 0
@@ -4192,7 +4193,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 886328de6a5c14cbb85854fdf1a5085b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: VuforiaScripts::DefaultObserverEventHandler
-  StatusFilter: 1
+  StatusFilter: 0
   UsePoseSmoothing: 1
   AnimationCurve:
     serializedVersion: 2
@@ -5319,7 +5320,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 886328de6a5c14cbb85854fdf1a5085b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: VuforiaScripts::DefaultObserverEventHandler
-  StatusFilter: 1
+  StatusFilter: 0
   UsePoseSmoothing: 1
   AnimationCurve:
     serializedVersion: 2
@@ -7018,7 +7019,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 886328de6a5c14cbb85854fdf1a5085b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: VuforiaScripts::DefaultObserverEventHandler
-  StatusFilter: 1
+  StatusFilter: 0
   UsePoseSmoothing: 1
   AnimationCurve:
     serializedVersion: 2
@@ -7279,7 +7280,7 @@ Transform:
   m_GameObject: {fileID: 8707273952210122134}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalPosition: {x: -0.558, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 1
   m_Children: []
@@ -8834,7 +8835,18 @@ MonoBehaviour:
       axis: 6
       targetValue: 0.5
       relative: 0
-      duration: 1
+      duration: 1.5
+      delay: 0
+      easeType: 23
+      loops: 0
+      loopType: 0
+    - targetOverride: {fileID: 1426595181}
+      type: 2
+      sequenceMode: 0
+      axis: 6
+      targetValue: 0.5
+      relative: 0
+      duration: 1.5
       delay: 0
       easeType: 23
       loops: 0
@@ -8845,9 +8857,9 @@ MonoBehaviour:
       type: 1
       sequenceMode: 0
       axis: 1
-      targetValue: -450
+      targetValue: -90
       relative: 0
-      duration: 3
+      duration: 5
       delay: 0
       easeType: 1
       loops: 0
@@ -8860,7 +8872,7 @@ MonoBehaviour:
       relative: 0
       duration: 2
       delay: 0
-      easeType: 24
+      easeType: 1
       loops: 0
       loopType: 0
     - targetOverride: {fileID: 1426595181}
@@ -8874,15 +8886,26 @@ MonoBehaviour:
       easeType: 33
       loops: 0
       loopType: 0
+    - targetOverride: {fileID: 1426595181}
+      type: 0
+      sequenceMode: 0
+      axis: 2
+      targetValue: 0
+      relative: 0
+      duration: 1.5
+      delay: 0
+      easeType: 33
+      loops: 0
+      loopType: 0
   - label: 360, then glasses small, and big cave again move to center
     animations:
     - targetOverride: {fileID: 1426595181}
       type: 1
       sequenceMode: 0
       axis: 1
-      targetValue: -360
+      targetValue: -90
       relative: 0
-      duration: 3
+      duration: 5
       delay: 0
       easeType: 1
       loops: 0
@@ -8901,8 +8924,8 @@ MonoBehaviour:
     - targetOverride: {fileID: 1426595181}
       type: 0
       sequenceMode: 0
-      axis: 0
-      targetValue: -3.45
+      axis: 2
+      targetValue: -0.8
       relative: 0
       duration: 3
       delay: 0
@@ -8928,7 +8951,18 @@ MonoBehaviour:
       axis: 6
       targetValue: 0.25
       relative: 0
-      duration: 1
+      duration: 1.5
+      delay: 0
+      easeType: 24
+      loops: 0
+      loopType: 0
+    - targetOverride: {fileID: 1426595181}
+      type: 2
+      sequenceMode: 0
+      axis: 6
+      targetValue: 0.125
+      relative: 0
+      duration: 1.5
       delay: 0
       easeType: 24
       loops: 0
@@ -12935,7 +12969,7 @@ Transform:
   m_GameObject: {fileID: 2076850631213062647}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0, y: 0.095, z: 0}
+  m_LocalPosition: {x: -0.558, y: 0.095, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 1
   m_Children: []

@@ -11,6 +11,7 @@ public class UIManager : MonoBehaviour
     public GameObject arrow;
     int panelCount;
 
+    [SerializeField] private float posX;
 
     private void Awake()
     {
@@ -24,13 +25,16 @@ public class UIManager : MonoBehaviour
     {
         panel.transform.DOMoveX(35, 1);
         arrow.transform.DORotate(new Vector3(0, 0, 0), 1);
+
+        posX = 530;
     }
 
     public void TogglePanel(GameObject panel)
     {
         if (panelCount == 0)
         {
-            panel.transform.DOMoveX(-527, 1);
+            posX = 530;
+            panel.transform.DOMoveX(-posX, 1);
             arrow.transform.DORotate(new Vector3(0, 0, 180), 1);
             panelCount = 1;
         }
