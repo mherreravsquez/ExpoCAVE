@@ -30,7 +30,7 @@ public class UIManager : MonoBehaviour
     {
         if (panelCount == 0)
         {
-            panel.transform.DOMoveX(-700, 1);
+            panel.transform.DOMoveX(-527, 1);
             arrow.transform.DORotate(new Vector3(0, 0, 180), 1);
             panelCount = 1;
         }

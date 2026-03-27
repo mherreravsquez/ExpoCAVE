@@ -3,7 +3,57 @@ guid: fd9db036fa714d14f8b978613ff1854f
 ModelImporter:
   serializedVersion: 24200
   internalIDToNameTable: []
-  externalObjects: {}
+  externalObjects:
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Baranda Base
+    second: {fileID: 2100000, guid: d347716ba6d2f0f41b45f3ccf6089fd5, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Data Base
+    second: {fileID: 2100000, guid: b5f18fd4390389e4bbd266e14688354d, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Escalera Base
+    second: {fileID: 2100000, guid: 8d142887f290904429366f11e935221c, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: LENTES CAVE1
+    second: {fileID: 2100000, guid: bb8d1d8e074bf084dbb22b811e256054, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: PERIFERICOS CAVE 1
+    second: {fileID: 2100000, guid: 3028c951669da1e48abdce30519df38b, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Pared Base
+    second: {fileID: 2100000, guid: 5e7cd02224a0f33479a9e7471914d144, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Paredes Base
+    second: {fileID: 2100000, guid: f86a9ec35cf09f54dbed97fea45050e3, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Piso Base
+    second: {fileID: 2100000, guid: 25cec89383bca68458f59ca1b73a71e5, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Suport Camera Base
+    second: {fileID: 2100000, guid: 37a94b9b2b8f2eb499c9e1827cf3a9ed, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: suelobase_
+    second: {fileID: 2100000, guid: 3484cf7487d182b4b837cf45c53c0d9b, type: 2}
   materials:
     materialImportMode: 2
     materialName: 0
